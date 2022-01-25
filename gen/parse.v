@@ -1,103 +1,181 @@
 module gen
 
 import os
-import json
 
-struct AST {
-	inner []Inner [required]
+// 1. read c file
+// 2. ignore everything that's not a typedef, #define, or GLEW_FUN_EXPORT
+// 3. parse (we'll deal with this later)
+
+// the hardest to parse it typedefs
+// defines after
+// easiest is exports
+
+struct Header {
+	exports  map[string]string
+	defines  map[string]string
+	typedefs map[string]FnTypes
 }
 
-struct Inner {
-	name     string
-	kind     string
-	ast_type InnerType [json: 'type']
+pub fn new_header(path string) ?Header {
+	raw := os.read_file(path) ?
+	lines := raw.split('\n')
+
+	exports := parse_exports(lines.filter(is_export)) ?
+	defines := parse_defines(lines.filter(is_define)) ?
+	typedefs := parse_typedefs(lines.filter(is_typedef)) ?
+	// these could be parallelized!
+
+	return Header{exports, defines, typedefs}
 }
 
-struct InnerType {
-	desugared_qual_type string [json: desugaredQualType]
+fn is_export(line string) bool {
+	return line.starts_with('GLEW_FUN_EXPORT')
 }
 
-pub fn new_ast(path string) ?AST {
-	precompiled_path := os.join_path(os.temp_dir(), 'precompiled.h')
+fn parse_exports(lines []string) ?map[string]string {
+	mut res := map[string]string{} // optimize: set cap for res (currently unsupported by V)
 
-	run('gcc -E $path -o $precompiled_path') ?
-	raw := run('clang -Xclang -ast-dump=json $precompiled_path') ?
+	for raw in lines {
+		// don't get confused, the syntax for exports is GLEW_FUN_EXPORT <val> <key>
+		// i don't know why either
 
-	data := json.decode(AST, raw) ?
-	return data
+		val_from := 16
+		val_to := raw.index('__') ? - 1 // we're assuming __ is the start of __glewSomeGlFunction + accommodate for space
+
+		key_from := val_to + 1 // add back space
+		key_to := raw.len - 1 // accommodate for the semicolon
+
+		res[raw.substr(key_from, key_to)] = raw.substr(val_from, val_to)
+	}
+
+	return res
 }
 
-pub fn (ast AST) parse() Data {
-	fns := ast.inner.filter(it.kind == 'VarDecl' && it.ast_type.desugared_qual_type.contains('(')).map(fn (it Inner) Fn {
-		// println('new function: $it.name')
-		return Fn{
-			name: it.name
-			types: parse_fn_types(it.ast_type.desugared_qual_type) or { panic(error) }
+fn is_define(line string) bool {
+	return line.starts_with('#define gl') && !line.starts_with('#define glew')
+}
+
+fn parse_defines(lines []string) ?map[string]string {
+	mut res := map[string]string{}
+
+	for raw in lines {
+		key_from := 8
+		key_to := raw.index('GLEW_GET_FUN') ?
+
+		val_from := raw.index('__') ? // we're assuming __ is the start of __glewSomeFunction
+		val_to := raw.len - 1 // accommodate for the ending bracket
+
+		res[raw.substr(key_from, key_to)] = raw.substr(val_from, val_to)
+	}
+
+	return res
+}
+
+fn is_typedef(line string) bool {
+	return line.starts_with('typedef') && line.contains('GLAPIENTRY')
+}
+
+fn parse_typedefs(lines []string) ?map[string]FnTypes {
+	mut res := map[string]FnTypes{}
+
+	for raw in lines {
+		// TODO what the fuck do we do with APIENTRY's????
+		// syntax: typedef <return> (GLAPIENTRY * PFN<fn ptr name>PROC) <args>
+		println(raw)
+
+		returns_from := 8
+		returns_to := raw.index('(GL') ? // we're assuming (GL is the start of (GLAPIENTRY
+		returns := parse_type(raw.substr(returns_from, returns_to)) ?
+
+		closing_bracket_pos := raw.substr(returns_to, raw.len).index(')') ? + returns_to
+
+		name_from := raw.index('APIENTRY *') ? + 12
+		println('penis')
+		name_to := closing_bracket_pos // we only check a subset of raw so the return type doesn't fuck up
+		println('pussy')
+		println('$name_from, $name_to')
+		name := raw.substr(name_from, name_to)
+
+		args_from := closing_bracket_pos + 3
+		args_to := raw.len - 2 // remove semicolon and ending bracket
+		args_raw := raw.substr(args_from, args_to)
+		println(args_raw)
+		args := if args_raw != 'void' { parse_args(args_raw) ? } else { []Var{} }
+
+		println('cock yet')
+		res[name] = FnTypes{returns, args}
+		println('still cock')
+	}
+
+	return res
+}
+
+fn parse_args(raw string) ?[]Var {
+	println(raw)
+	if raw.contains('const ') {
+		return parse_args(raw.replace('const ', ''))
+	}
+
+	args := raw.split(',').map(it.trim(' '))
+	mut res := []Var{cap: args.len}
+
+	for arg in args {
+		mut separator := ''
+
+		if arg.contains(' ') {
+			if arg.contains('*') {
+				if arg.index(' ') ? < arg.index('*') ? {
+					// type *name
+					separator = ' *'
+				} else {
+					// type* name
+					separator = '* '
+				}
+			} else {
+				// type name
+				separator = ' '
+			}
+		} else {
+			if arg.contains('*') {
+				// type*name
+				separator = '*'
+			} else {
+				// only type. :|
+				res << Var{
+					name: 'x /* no name. */'
+					kind: parse_type(arg) ?
+				}
+				continue
+			}
 		}
-	})
-	enums := []Enum{} // welp
 
-	return Data{fns, enums}
-}
+		kind_from := 0
+		println("$arg: '$separator'")
+		kind_to := arg.index(separator) ?
+		println('aAAAA')
+		name_from := kind_to + separator.len
+		name_to := arg.len
 
-fn parse_fn_types(raw string) ?FnTypes {
-	// well this is going to be one scuffed-ass parser for sure
-	// println('prescuff: $raw')
-	// println('scuff: ${raw.substr(0, raw.index('(*)') ?)}')
-	returns := parse_type(raw.substr(0, raw.index('(*)') ?)) ?
-	args := raw.substr(raw.index('(*)(') ? + 4, raw.len - 1).split(', ').map(fn (gl string) Type {
-		return parse_type(gl) or { panic(error) }
-	})
+		name := arg.substr(name_from, name_to)
+		kind_raw := arg.substr(kind_from, kind_to)
+		kind := parse_type(kind_raw) ?
 
-	return FnTypes{returns, args}
+		res << Var{name, kind}
+	}
+
+	println('cock')
+	return res
 }
 
 fn parse_type(raw string) ?Type {
-	// println(raw)
-	// defer {println('$raw done')}
 	if raw.contains('const') {
 		return parse_type(raw.replace('const', '').trim(' '))
 	}
 	if !raw.contains('*') {
-		return Type(translate_type(raw.trim(' ')) ?)
+		return Type(translate_type(raw.trim(' ')))
 	}
 	return ComplexType{
 		pointer: true
 		child: parse_type(raw.trim(' ').substr(0, raw.len - 1).trim(' ')) ?
-	}
-}
-
-fn translate_type(gl string) ?string {
-	// println('GL: $gl')
-
-	if gl.contains('PROC') {
-		return gl
-	}
-	return match gl {
-		'GLenum' { 'u32' }
-		'GLbitfield' { 'u32' }
-		'GLuint' { 'u32' }
-		'GLint' { 'int' }
-		'GLsizei' { 'int' }
-		'GLboolean' { 'u8' }
-		'GLbyte' { 'i8' }
-		'GLshort' { 'i16' }
-		'GLubyte' { 'u8' }
-		'GLushort' { 'u16' }
-		'GLulong' { 'u64' }
-		'GLfloat' { 'f32' }
-		'GLclampf' { 'f32' }
-		'GLdouble' { 'f64' }
-		'GLclampd' { 'f64' }
-		'GLsizeiptr' { 'i64' }
-		'GLintptr' { 'i64' }
-		'GLchar' { 'char' }
-		'GLint64' { 'i64' }
-		'GLuint64' { 'u64' }
-		'GLuint64EXT' { 'u64' }
-		'GLvoid' { '' }
-		'void' { '' }
-		// else { error('Unknown GL type $gl') }
-		else { '/* $gl */' }
 	}
 }

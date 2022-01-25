@@ -12,7 +12,12 @@ struct Fn {
 
 struct FnTypes {
 	returns Type
-	args    []Type
+	args    []Var
+}
+
+struct Var {
+	name string
+	kind Type
 }
 
 struct ComplexType {
@@ -38,9 +43,13 @@ fn (fun Fn) str() string {
 	name := fun.name.replace('__glew', 'gl')
 
 	returns := ' $fun.types.returns.str()'
-	args := fun.types.args.map('$it.str()').join(', ')
+	args := fun.types.args.map(it.str()).join(', ')
 
 	return 'fn C.${name}($args) $returns'
+}
+
+fn (var Var) str() string {
+	return '$var.name $var.kind.str()'
 }
 
 fn (ty Type) str() string {
