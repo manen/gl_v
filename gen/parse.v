@@ -11,6 +11,8 @@ import os
 // easiest is exports
 
 struct Header {
+	enums []Enum
+
 	exports  map[string]string
 	defines  map[string]string
 	typedefs map[string]FnTypes
@@ -20,12 +22,42 @@ pub fn new_header(path string) ?Header {
 	raw := os.read_file(path) ?
 	lines := raw.split('\n')
 
+	enums := parse_enums(lines.filter(is_enum)) ?
+
 	exports := parse_exports(lines.filter(is_export)) ?
 	defines := parse_defines(lines.filter(is_define)) ?
 	typedefs := parse_typedefs(lines.filter(is_typedef)) ?
 	// these could be parallelized!
 
-	return Header{exports, defines, typedefs}
+	return Header{enums, exports, defines, typedefs}
+}
+
+fn is_enum(line string) bool {
+	return line.starts_with('#define GL') && !line.starts_with('#define GLEW')
+}
+
+fn parse_enums(lines []string) ?[]Enum {
+	mut res := []Enum{cap: lines.len}
+
+	for raw in lines {
+		name_from := 8
+		without_define := raw.substr(name_from, raw.len)
+		if !without_define.contains(' ') {
+			// header definition probably. do something if i fucked something up
+			continue
+		}
+		name_to := without_define.index(' ') ? + name_from // add name_from to accommodate for without_define something blah blah
+
+		val_from := name_to + 1
+		val_to := raw.len
+
+		res << Enum{
+			name: raw.substr(name_from, name_to)
+			val: raw.substr(val_from, val_to)
+		}
+	}
+
+	return res
 }
 
 fn is_export(line string) bool {

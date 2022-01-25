@@ -9,3 +9,7 @@ gl_v
 vls.log
 
 tmp
+*.txt
+*.c
+*.h
+*.json
