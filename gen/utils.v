@@ -1,4 +1,6 @@
 module gen
+// glhf
+// glhf
 
 fn translate_type(gl string) string {
 	return match gl {
@@ -28,4 +30,9 @@ fn translate_type(gl string) string {
 		// else { error('Unknown GL type $gl') }
 		else { '/* $gl */ voidptr' }
 	}
+}
+
+fn translate_enum(name string) string {
+	remove := if name.starts_with('GL_') { 3 } else { 2 }
+	return name.substr(remove, name.len).to_lower()
 }

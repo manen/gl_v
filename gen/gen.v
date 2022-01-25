@@ -69,5 +69,6 @@ fn (ty ComplexType) str() string {
 }
 
 fn (en Enum) str() string {
-	return 'const $en.name = $en.val'
+	name := translate_enum(en.name)
+	return 'const $name = $en.val'
 }
