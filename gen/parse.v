@@ -81,7 +81,6 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 	for raw in lines {
 		// TODO what the fuck do we do with APIENTRY's????
 		// syntax: typedef <return> (GLAPIENTRY * PFN<fn ptr name>PROC) <args>
-		println(raw)
 
 		returns_from := 8
 		returns_to := raw.index('(GL') ? // we're assuming (GL is the start of (GLAPIENTRY
@@ -90,28 +89,21 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 		closing_bracket_pos := raw.substr(returns_to, raw.len).index(')') ? + returns_to
 
 		name_from := raw.index('APIENTRY *') ? + 12
-		println('penis')
 		name_to := closing_bracket_pos // we only check a subset of raw so the return type doesn't fuck up
-		println('pussy')
-		println('$name_from, $name_to')
 		name := raw.substr(name_from, name_to)
 
 		args_from := closing_bracket_pos + 3
 		args_to := raw.len - 2 // remove semicolon and ending bracket
 		args_raw := raw.substr(args_from, args_to)
-		println(args_raw)
 		args := if args_raw != 'void' { parse_args(args_raw) ? } else { []Var{} }
 
-		println('cock yet')
 		res[name] = FnTypes{returns, args}
-		println('still cock')
 	}
 
 	return res
 }
 
 fn parse_args(raw string) ?[]Var {
-	println(raw)
 	if raw.contains('const ') {
 		return parse_args(raw.replace('const ', ''))
 	}
@@ -150,9 +142,7 @@ fn parse_args(raw string) ?[]Var {
 		}
 
 		kind_from := 0
-		println("$arg: '$separator'")
 		kind_to := arg.index(separator) ?
-		println('aAAAA')
 		name_from := kind_to + separator.len
 		name_to := arg.len
 
@@ -163,7 +153,6 @@ fn parse_args(raw string) ?[]Var {
 		res << Var{name, kind}
 	}
 
-	println('cock')
 	return res
 }
 
