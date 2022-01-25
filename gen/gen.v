@@ -40,12 +40,12 @@ fn (data Data) str() string {
 }
 
 fn (fun Fn) str() string {
-	name := fun.name.replace('__glew', 'gl')
+	name := fun.name.replace('__glew', 'gl').substr(0, fun.name.len)
 
-	returns := ' $fun.types.returns.str()'
+	returns := if fun.types.returns != Type('') {' $fun.types.returns.str()'} else {''}
 	args := fun.types.args.map(it.str()).join(', ')
 
-	return 'fn C.${name}($args) $returns'
+	return 'fn C.${name}($args)$returns'
 }
 
 fn (var Var) str() string {

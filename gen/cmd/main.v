@@ -4,5 +4,5 @@ import gen
 
 fn main() {
 	// println('Hey :D')
-	println(gen.new_header('/usr/include/GL/glew.h') ?)
+	println(gen.new_header('/usr/include/GL/glew.h') ?.parse())
 }

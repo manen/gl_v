@@ -32,6 +32,27 @@ pub fn new_header(path string) ?Header {
 	return Header{enums, exports, defines, typedefs}
 }
 
+pub fn (header Header) parse() Data {
+	fns := header.parse_fns()
+
+	return Data{
+		fns: fns
+		enums: header.enums
+	}
+}
+
+fn (header Header) parse_fns() []Fn {
+	mut fns := []Fn{cap: header.exports.len}
+
+	for name, export_name in header.defines {
+		types := header.typedefs[header.exports[export_name]]
+
+		fns << Fn{name, types}
+	}
+
+	return fns
+}
+
 fn is_enum(line string) bool {
 	return line.starts_with('#define GL') && !line.starts_with('#define GLEW')
 }
@@ -92,7 +113,7 @@ fn parse_defines(lines []string) ?map[string]string {
 
 	for raw in lines {
 		key_from := 8
-		key_to := raw.index('GLEW_GET_FUN') ?
+		key_to := raw.index('GLEW_GET_FUN') ? - 1
 
 		val_from := raw.index('__') ? // we're assuming __ is the start of __glewSomeFunction
 		val_to := raw.len - 1 // accommodate for the ending bracket
@@ -120,7 +141,7 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 
 		closing_bracket_pos := raw.substr(returns_to, raw.len).index(')') ? + returns_to
 
-		name_from := raw.index('APIENTRY *') ? + 12
+		name_from := raw.index('APIENTRY *') ? + 11
 		name_to := closing_bracket_pos // we only check a subset of raw so the return type doesn't fuck up
 		name := raw.substr(name_from, name_to)
 
