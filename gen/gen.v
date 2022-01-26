@@ -38,6 +38,7 @@ pub fn (data Data) enums_str() string {
 }
 
 pub fn (data Data) write(conf WriteConfig) ? {
+	make_sure_dir_exists(conf.root) ?
 	os.write_file(os.join_path(conf.root, conf.fns_file), data.fns_str()) ?
 	os.write_file(os.join_path(conf.root, conf.enums_file), data.enums_str()) ?
 }

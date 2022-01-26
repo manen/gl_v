@@ -1,5 +1,7 @@
 module gen
 
+import os
+
 fn translate_type(gl string) string {
 	return match gl {
 		'GLenum' { 'u32' }
@@ -33,4 +35,10 @@ fn translate_type(gl string) string {
 fn translate_enum(name string) string {
 	remove := if name.starts_with('GL_') { 3 } else { 2 }
 	return name.substr(remove, name.len).to_lower()
+}
+
+fn make_sure_dir_exists(path string) ? {
+	if !os.exists(path) {
+		os.mkdir(path) ?
+	}
 }
