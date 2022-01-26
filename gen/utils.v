@@ -1,6 +1,4 @@
 module gen
-// glhf
-// glhf
 
 fn translate_type(gl string) string {
 	return match gl {
