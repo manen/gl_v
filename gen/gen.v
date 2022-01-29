@@ -49,7 +49,7 @@ struct Fn {
 }
 
 fn (fun Fn) str() string {
-	name := fun.name.replace('__glew', 'gl').substr(0, fun.name.len)
+	name := fun.name.substr(0, fun.name.len)
 
 	returns := if fun.types.returns != Type('') { ' $fun.types.returns.str()' } else { '' }
 	args := fun.types.args.map(it.str()).join(', ')

@@ -54,7 +54,7 @@ fn (header Header) parse_fns() []Fn {
 }
 
 fn is_enum(line string) bool {
-	return line.starts_with('#define GL') && !line.starts_with('#define GLEW')
+	return line.starts_with('#define GL_') && !line.starts_with('#define GLEW')
 }
 
 fn parse_enums(lines []string) ?[]Enum {
