@@ -27,6 +27,20 @@ fn translate_type(gl string) string {
 		'GLuint64EXT' { 'u64' }
 		'GLvoid' { '' }
 		'void' { '' }
+		'GLsync' { 'voidptr' }
+		'cl_context' { 'voidptr' }
+		'cl_event' { 'voidptr' }
+		'GLhandleARB' { 'u32' }
+		'GLcharARB' { 'char' }
+		'GLsizeiptrARB' { 'i64' }
+		'GLintptrARB' { 'i64' }
+		'GLeglImageOES' { 'voidptr' }
+		'GLeglClientBufferEXT' { 'voidptr' }
+		'GLint64EXT' { 'i64' }
+		'GLhalf' { 'u16' }
+		'GLvdpauSurfaceNV' { 'i64' }
+		'GLfixed' { 'int' }
+		'GLclampx' { 'int' }
 		// else { error('Unknown GL type $gl') }
 		else { '/* $gl */ voidptr' }
 	}
