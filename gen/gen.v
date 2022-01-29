@@ -72,17 +72,17 @@ fn (var Var) str() string {
 }
 
 struct ComplexType {
-	pointer bool
-	child   Type
+	ptr   bool
+	child Type
 }
 
 fn (ty ComplexType) str() string {
-	if ty.pointer && ty.child.str() == '' {
+	if ty.ptr && ty.child.str() == '' {
 		return 'voidptr'
 	}
 
-	pointer := if ty.pointer { '&' } else { '' }
-	return '$pointer$ty.child.str()'
+	ptr := if ty.ptr { '&' } else { '' }
+	return '$ptr$ty.child.str()'
 }
 
 type Type = ComplexType | string

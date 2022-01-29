@@ -217,7 +217,7 @@ fn parse_type(raw string) ?Type {
 		return Type(translate_type(raw.trim(' ')))
 	}
 	return ComplexType{
-		pointer: true
+		ptr: true
 		child: parse_type(raw.trim(' ').substr(0, raw.len - 1).trim(' ')) ?
 	}
 }
