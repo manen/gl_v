@@ -2,14 +2,6 @@ module gen
 
 import os
 
-// 1. read c file
-// 2. ignore everything that's not a typedef, #define, or GLEW_FUN_EXPORT
-// 3. parse (we'll deal with this later)
-
-// the hardest to parse it typedefs
-// defines after
-// easiest is exports
-
 struct Header {
 	enums []Enum
 
@@ -54,7 +46,7 @@ fn (header Header) parse_fns() []Fn {
 }
 
 fn is_enum(line string) bool {
-	return line.starts_with('#define GL_') && !line.starts_with('#define GLEW')
+	return line.starts_with('#define GL_')
 }
 
 fn parse_enums(lines []string) ?[]Enum {
