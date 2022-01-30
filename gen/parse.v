@@ -137,8 +137,8 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 
 		returns_from := 8
 		returns_to := raw.index('(GL') ? // we're assuming (GL is the start of (GLAPIENTRY
-		returns := parse_type(raw.substr(returns_from, returns_to), false) ?
-
+		returns_raw := raw.substr(returns_from, returns_to).trim(' ')
+		returns := parse_type(returns_raw, false) ?
 		closing_bracket_pos := raw.substr(returns_to, raw.len).index(')') ? + returns_to
 
 		name_from := raw.index('APIENTRY *') ? + 11
@@ -165,7 +165,6 @@ fn parse_args(raw string) ?[]Var {
 	mut res := []Var{cap: args.len}
 
 	for arg in args {
-		println(arg)
 		mut separator := ''
 		ptr := arg.contains('*')
 
@@ -205,8 +204,6 @@ fn parse_args(raw string) ?[]Var {
 		kind_raw := arg.substr(kind_from, kind_to)
 		kind := parse_type(kind_raw, ptr) ?
 
-		if kind is ComplexType { println(kind.ptr) }
-
 		res << Var{name, kind}
 	}
 
@@ -222,6 +219,7 @@ fn parse_type(raw string, implied_ptr bool) ?Type {
 	}
 	return ComplexType{
 		ptr: true
-		child: parse_type(raw.trim(' ').substr(0, raw.len - if raw.contains('*') {1} else {0}).trim(' '), false) ?
+		child: parse_type(raw.trim(' ').substr(0, raw.len - if raw.contains('*') { 1 } else { 0 }).trim(' '),
+			if raw.contains('*') && implied_ptr { true } else { false }) ?
 	}
 }

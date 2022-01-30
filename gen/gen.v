@@ -77,11 +77,7 @@ struct ComplexType {
 }
 
 fn (ty ComplexType) str() string {
-	dump(ty.ptr)
-	dump(typeof(ty.child).name)
-
 	if ty.ptr && ty.child == Type('') {
-		println('voidptr')
 		return 'voidptr'
 	}
 	// (string)  void ->
@@ -90,7 +86,6 @@ fn (ty ComplexType) str() string {
 
 	ptr := if ty.ptr { '&' } else { '' }
 	child := ty.child.str()
-	println('$ptr$child')
 	return '$ptr$child'
 }
 
