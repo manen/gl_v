@@ -19,6 +19,15 @@ struct Data {
 	enums []Enum
 }
 
+pub fn (fns []Fn) gen() string {
+	return head(fns.map(it.gen()).join('\n'))
+}
+
+pub fn (enums []Enum) gen() string {
+	raw := enums.map(it.gen()).join('\n')
+	return head('const (\n$raw\n)')
+}
+
 pub struct WriteConfig {
 	root string
 
@@ -26,21 +35,10 @@ pub struct WriteConfig {
 	enums_file string
 }
 
-pub fn (data Data) fns_str() string {
-	fns := data.fns.map(it.str()).join('\n')
-	return head(fns)
-}
-
-pub fn (data Data) enums_str() string {
-	raw := data.enums.map(it.str()).join('\n')
-	enums := 'const (\n$raw\n)'
-	return head(enums)
-}
-
 pub fn (data Data) write(conf WriteConfig) ? {
 	make_sure_dir_exists(conf.root) ?
-	os.write_file(os.join_path(conf.root, conf.fns_file), data.fns_str()) ?
-	os.write_file(os.join_path(conf.root, conf.enums_file), data.enums_str()) ?
+	os.write_file(os.join_path(conf.root, conf.fns_file), data.fns.gen()) ?
+	os.write_file(os.join_path(conf.root, conf.enums_file), data.enums.gen()) ?
 }
 
 struct Fn {
@@ -48,9 +46,9 @@ struct Fn {
 	types FnTypes
 }
 
-fn (fun Fn) str() string {
-	returns := if fun.types.returns != Type('') { ' $fun.types.returns.str()' } else { '' }
-	args := fun.types.args.map(it.str()).join(', ')
+fn (fun Fn) gen() string {
+	returns := if fun.types.returns != Type('') { ' $fun.types.returns.gen()' } else { '' }
+	args := fun.types.args.map(it.gen()).join(', ')
 
 	return 'fn C.${fun.name}($args)$returns'
 }
@@ -65,20 +63,20 @@ struct Var {
 	kind Type
 }
 
-fn (var Var) str() string {
+fn (var Var) gen() string {
 	name := unreserve_word(var.name)
-	return '$name $var.kind.str()'
+	return '$name $var.kind.gen()'
 }
 
 struct PtrType {
 	child Type
 }
 
-fn (ty PtrType) str() string {
+fn (ty PtrType) gen() string {
 	if ty.child == Type('') {
 		return 'voidptr'
 	}
-	return '&$ty.child.str()'
+	return '&$ty.child.gen()'
 }
 
 struct ArrayType {
@@ -86,17 +84,17 @@ struct ArrayType {
 	child Type
 }
 
-fn (ty ArrayType) str() string {
-	return '[$ty.len]$ty.child.str()'
+fn (ty ArrayType) gen() string {
+	return '[$ty.len]$ty.child.gen()'
 }
 
 type Type = ArrayType | PtrType | string
 
-fn (ty Type) str() string {
+fn (ty Type) gen() string {
 	return match ty {
 		string { ty }
-		PtrType { ty.str() }
-		ArrayType { ty.str() }
+		PtrType { ty.gen() }
+		ArrayType { ty.gen() }
 		// using else here caused a segfault
 	}
 }
@@ -106,7 +104,7 @@ struct Enum {
 	val  string
 }
 
-fn (en Enum) str() string {
+fn (en Enum) gen() string {
 	name := unreserve_word(translate_enum(en.name))
 	return '\t$name = $en.val'
 }
