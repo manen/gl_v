@@ -2,6 +2,15 @@ module gen
 
 import os
 
+const (
+	reserved_words   = ['as', 'asm', 'assert', 'atomic', 'break', 'const', 'continue', 'defer',
+		'else', 'embed', 'enum', 'false', 'fn', 'for', 'go', 'goto', 'if', 'import', 'in',
+		'interface', 'is', 'lock', 'match', 'module', 'mut', 'none', 'or', 'pub', 'return', 'rlock',
+		'select', 'shared', 'sizeof', 'static', 'struct', 'true', 'type', 'typeof', 'union', 'unsafe',
+		'volatile', '__offsetof']
+	reserved_numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+)
+
 fn translate_type(gl string) string {
 	return match gl {
 		'GLenum' { 'u32' }
@@ -44,6 +53,34 @@ fn translate_type(gl string) string {
 		// else { error('Unknown GL type $gl') }
 		else { '/* $gl */ voidptr' }
 	}
+}
+
+// unreserve_word is a handy function to convert function/variable/argument/constant names that
+// are invalid in V to names that are actually valid in V.
+fn unreserve_word(raw string) string {
+	if is_invalid(raw) {
+		return 'gl_$raw'
+	} else {
+		return raw
+	}
+}
+
+// is_invalid checks if a function/variable/argument/constant name would be
+// invalid in V.
+// inevitably O(n^2), probably a performance pain point.
+fn is_invalid(name string) bool {
+	for reserved in gen.reserved_numbers {
+		if name.starts_with(reserved) {
+			return true
+		}
+	}
+	for reserved in gen.reserved_words {
+		if name == reserved {
+			return true
+		}
+	}
+
+	return false
 }
 
 fn translate_enum(name string) string {

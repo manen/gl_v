@@ -49,12 +49,10 @@ struct Fn {
 }
 
 fn (fun Fn) str() string {
-	name := fun.name.substr(0, fun.name.len)
-
 	returns := if fun.types.returns != Type('') { ' $fun.types.returns.str()' } else { '' }
 	args := fun.types.args.map(it.str()).join(', ')
 
-	return 'fn C.${name}($args)$returns'
+	return 'fn C.${fun.name}($args)$returns'
 }
 
 struct FnTypes {
@@ -68,7 +66,8 @@ struct Var {
 }
 
 fn (var Var) str() string {
-	return '$var.name $var.kind.str()'
+	name := unreserve_word(var.name)
+	return '$name $var.kind.str()'
 }
 
 struct PtrType {
@@ -108,6 +107,6 @@ struct Enum {
 }
 
 fn (en Enum) str() string {
-	name := translate_enum(en.name)
+	name := unreserve_word(translate_enum(en.name))
 	return '\t$name = $en.val'
 }
