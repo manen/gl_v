@@ -157,8 +157,8 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 }
 
 fn parse_args(raw string) ?[]Var {
-	if raw.contains('const ') {
-		return parse_args(raw.replace('const ', ''))
+	if raw.contains('const') {
+		return parse_args(raw.replace('const', ''))
 	}
 
 	args := raw.split(',').map(it.trim(' '))
@@ -183,7 +183,7 @@ fn parse_args(raw string) ?[]Var {
 
 		if arg.contains(' ') {
 			if arg.contains('*') {
-				if arg.index(' ') ? < arg.index('*') ? {
+				if string_index_last(arg, ' ') ? < string_index_last(arg, '*') ? {
 					// type *name
 					separator = ' *'
 				} else {
@@ -209,7 +209,7 @@ fn parse_args(raw string) ?[]Var {
 		}
 
 		kind_from := 0
-		kind_to := arg.index(separator) ?
+		kind_to := string_index_last(arg, separator) ?
 		name_from := kind_to + separator.len
 		name_to := if arg.contains('[') {
 			a := arg.index('[') ?
@@ -249,6 +249,9 @@ fn (im Implied) arr() bool {
 fn parse_type(raw string, im Implied) ?Type {
 	if raw.contains('const') {
 		return parse_type(raw.replace('const', '').trim(' '), im)
+	}
+	if raw.contains('*') && !raw.ends_with('*') {
+		return parse_type(raw.trim(' '), im)
 	}
 
 	if raw.contains('*') {

@@ -93,3 +93,7 @@ fn make_sure_dir_exists(path string) ? {
 		os.mkdir(path) ?
 	}
 }
+
+fn string_index_last(str string, find string) ?int {
+	return str.len - (str.reverse().index(find.reverse())? + find.len)
+}
