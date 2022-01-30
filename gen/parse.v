@@ -217,8 +217,7 @@ fn parse_type(raw string, implied_ptr bool) ?Type {
 	if !raw.contains('*') && !implied_ptr {
 		return Type(translate_type(raw.trim(' ')))
 	}
-	return ComplexType{
-		ptr: true
+	return PtrType{
 		child: parse_type(raw.trim(' ').substr(0, raw.len - if raw.contains('*') { 1 } else { 0 }).trim(' '),
 			if raw.contains('*') && implied_ptr { true } else { false }) ?
 	}

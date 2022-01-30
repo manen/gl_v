@@ -71,29 +71,22 @@ fn (var Var) str() string {
 	return '$var.name $var.kind.str()'
 }
 
-struct ComplexType {
-	ptr   bool
+struct PtrType {
 	child Type
 }
 
-fn (ty ComplexType) str() string {
-	if ty.ptr && ty.child == Type('') {
+fn (ty PtrType) str() string {
+	if ty.child == Type('') {
 		return 'voidptr'
 	}
-	// (string)  void ->
-	// (Complex) void* -> voidptr
-	// (Complex) void** -> &voidptr
-
-	ptr := if ty.ptr { '&' } else { '' }
-	child := ty.child.str()
-	return '$ptr$child'
+	return '&$ty.child.str()'
 }
 
-type Type = ComplexType | string
+type Type = PtrType | string
 
 fn (ty Type) str() string {
 	return match ty {
-		ComplexType { ty.str() }
+		PtrType { ty.str() }
 		string { ty }
 	}
 }
