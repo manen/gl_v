@@ -4,15 +4,8 @@ yeah uhm
 
 ## Requirements
 
-Node, OpenGL headers installed
+GLEW headers installed
 
-## fuck you i'm leaving my notes here
+## Usage
 
-so
-
-1. gcc -E /usr/include/GL/glew.h -o ./glew.h # may be redundant, test it
-2. clang -Xclang -ast-dump=json ./glew.h > ast.json
-3. \<v code\>
-
-nevermind v can do it all now
-v's fucking sick
+`v run gen/cmd`
