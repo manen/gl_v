@@ -82,12 +82,23 @@ fn (ty PtrType) str() string {
 	return '&$ty.child.str()'
 }
 
-type Type = PtrType | string
+struct ArrayType {
+	len   int
+	child Type
+}
+
+fn (ty ArrayType) str() string {
+	return '[$ty.len]$ty.child.str()'
+}
+
+type Type = ArrayType | PtrType | string
 
 fn (ty Type) str() string {
 	return match ty {
-		PtrType { ty.str() }
 		string { ty }
+		PtrType { ty.str() }
+		ArrayType { ty.str() }
+		// using else here caused a segfault
 	}
 }
 

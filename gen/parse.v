@@ -138,7 +138,7 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 		returns_from := 8
 		returns_to := raw.index('(GL') ? // we're assuming (GL is the start of (GLAPIENTRY
 		returns_raw := raw.substr(returns_from, returns_to).trim(' ')
-		returns := parse_type(returns_raw, false) ?
+		returns := parse_type(returns_raw, Implied{}) ?
 		closing_bracket_pos := raw.substr(returns_to, raw.len).index(')') ? + returns_to
 
 		name_from := raw.index('APIENTRY *') ? + 11
@@ -166,7 +166,20 @@ fn parse_args(raw string) ?[]Var {
 
 	for arg in args {
 		mut separator := ''
-		ptr := arg.contains('*')
+		mut ptr := if arg.contains('*') { 1 } else { 0 }
+		len := if arg.contains('[') {
+			len_from := arg.index('[') ? + 1
+			len_to := arg.index(']') ?
+			len_raw := arg.substr(len_from, len_to)
+			if len_raw != '' {
+				len_raw.int()
+			} else {
+				ptr++
+				0
+			}
+		} else {
+			0
+		}
 
 		if arg.contains(' ') {
 			if arg.contains('*') {
@@ -189,7 +202,7 @@ fn parse_args(raw string) ?[]Var {
 				// only type. :|
 				res << Var{
 					name: 'x /* no name. */'
-					kind: parse_type(arg, ptr) ?
+					kind: parse_type(arg, ptr: ptr) ?
 				}
 				continue
 			}
@@ -198,11 +211,17 @@ fn parse_args(raw string) ?[]Var {
 		kind_from := 0
 		kind_to := arg.index(separator) ?
 		name_from := kind_to + separator.len
-		name_to := arg.len
+		name_to := if arg.contains('[') {
+			a := arg.index('[') ?
+			a
+			// the v compiler is funny sometimes
+		} else {
+			arg.len
+		}
 
 		name := arg.substr(name_from, name_to)
 		kind_raw := arg.substr(kind_from, kind_to)
-		kind := parse_type(kind_raw, ptr) ?
+		kind := parse_type(kind_raw, ptr: ptr, arr_len: len) ?
 
 		res << Var{name, kind}
 	}
@@ -210,15 +229,45 @@ fn parse_args(raw string) ?[]Var {
 	return res
 }
 
-fn parse_type(raw string, implied_ptr bool) ?Type {
+struct Implied {
+	ptr     int
+	arr_len int
+}
+
+fn (im Implied) is_default() bool {
+	return !im.ptr() && !im.arr()
+}
+
+fn (im Implied) ptr() bool {
+	return im.ptr != 0
+}
+
+fn (im Implied) arr() bool {
+	return im.arr_len != 0
+}
+
+fn parse_type(raw string, im Implied) ?Type {
 	if raw.contains('const') {
-		return parse_type(raw.replace('const', '').trim(' '), implied_ptr)
+		return parse_type(raw.replace('const', '').trim(' '), im)
 	}
-	if !raw.contains('*') && !implied_ptr {
-		return Type(translate_type(raw.trim(' ')))
+
+	if raw.contains('*') {
+		return PtrType{
+			child: parse_type(raw.substr(0, raw.len - 1), im) ?
+		}
 	}
-	return PtrType{
-		child: parse_type(raw.trim(' ').substr(0, raw.len - if raw.contains('*') { 1 } else { 0 }).trim(' '),
-			if raw.contains('*') && implied_ptr { true } else { false }) ?
+	if im.ptr() {
+		return PtrType{
+			child: parse_type(raw, Implied{ ptr: im.ptr - 1, arr_len: im.arr_len }) ?
+		}
 	}
+	if im.arr() {
+		return ArrayType{
+			len: im.arr_len
+			child: parse_type(raw, Implied{ ptr: im.ptr }) ?
+		}
+	}
+
+	assert im.is_default()
+	return Type(translate_type(raw.trim(' ')))
 }
