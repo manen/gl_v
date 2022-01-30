@@ -137,7 +137,7 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 
 		returns_from := 8
 		returns_to := raw.index('(GL') ? // we're assuming (GL is the start of (GLAPIENTRY
-		returns := parse_type(raw.substr(returns_from, returns_to)) ?
+		returns := parse_type(raw.substr(returns_from, returns_to), false) ?
 
 		closing_bracket_pos := raw.substr(returns_to, raw.len).index(')') ? + returns_to
 
@@ -165,7 +165,9 @@ fn parse_args(raw string) ?[]Var {
 	mut res := []Var{cap: args.len}
 
 	for arg in args {
+		println(arg)
 		mut separator := ''
+		ptr := arg.contains('*')
 
 		if arg.contains(' ') {
 			if arg.contains('*') {
@@ -188,7 +190,7 @@ fn parse_args(raw string) ?[]Var {
 				// only type. :|
 				res << Var{
 					name: 'x /* no name. */'
-					kind: parse_type(arg) ?
+					kind: parse_type(arg, ptr) ?
 				}
 				continue
 			}
@@ -201,7 +203,9 @@ fn parse_args(raw string) ?[]Var {
 
 		name := arg.substr(name_from, name_to)
 		kind_raw := arg.substr(kind_from, kind_to)
-		kind := parse_type(kind_raw) ?
+		kind := parse_type(kind_raw, ptr) ?
+
+		if kind is ComplexType { println(kind.ptr) }
 
 		res << Var{name, kind}
 	}
@@ -209,15 +213,15 @@ fn parse_args(raw string) ?[]Var {
 	return res
 }
 
-fn parse_type(raw string) ?Type {
+fn parse_type(raw string, implied_ptr bool) ?Type {
 	if raw.contains('const') {
-		return parse_type(raw.replace('const', '').trim(' '))
+		return parse_type(raw.replace('const', '').trim(' '), implied_ptr)
 	}
-	if !raw.contains('*') {
+	if !raw.contains('*') && !implied_ptr {
 		return Type(translate_type(raw.trim(' ')))
 	}
 	return ComplexType{
 		ptr: true
-		child: parse_type(raw.trim(' ').substr(0, raw.len - 1).trim(' ')) ?
+		child: parse_type(raw.trim(' ').substr(0, raw.len - if raw.contains('*') {1} else {0}).trim(' '), false) ?
 	}
 }

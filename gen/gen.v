@@ -77,12 +77,21 @@ struct ComplexType {
 }
 
 fn (ty ComplexType) str() string {
-	if ty.ptr && ty.child.str() == '' {
+	dump(ty.ptr)
+	dump(typeof(ty.child).name)
+
+	if ty.ptr && ty.child == Type('') {
+		println('voidptr')
 		return 'voidptr'
 	}
+	// (string)  void ->
+	// (Complex) void* -> voidptr
+	// (Complex) void** -> &voidptr
 
 	ptr := if ty.ptr { '&' } else { '' }
-	return '$ptr$ty.child.str()'
+	child := ty.child.str()
+	println('$ptr$child')
+	return '$ptr$child'
 }
 
 type Type = ComplexType | string
