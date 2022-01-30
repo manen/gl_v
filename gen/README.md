@@ -4,7 +4,7 @@ yeah uhm
 
 ## Requirements
 
-GLEW headers installed
+GLEW headers installed at `/usr/include/GL/glew.h`
 
 ## Usage
 
