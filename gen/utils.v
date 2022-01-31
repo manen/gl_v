@@ -95,5 +95,15 @@ fn make_sure_dir_exists(path string) ? {
 }
 
 fn string_index_last(str string, find string) ?int {
-	return str.len - (str.reverse().index(find.reverse())? + find.len)
+	return str.len - (str.reverse().index(find.reverse()) ? + find.len)
+}
+
+fn string_count(str string, find u8) int {
+	mut count := 0
+	for b in str.bytes() {
+		if b == find {
+			count++
+		}
+	}
+	return count
 }

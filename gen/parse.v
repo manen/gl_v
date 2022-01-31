@@ -193,7 +193,7 @@ fn parse_args(raw string) ?[]Var {
 			} else {
 				// only type. :|
 				res << Var{
-					name: 'x /* no name. */'
+					name: 'xyzabc /* no name. */'
 					kind: parse_type(arg, ptr: ptr) ?
 				}
 				continue
@@ -211,7 +211,17 @@ fn parse_args(raw string) ?[]Var {
 			arg.len
 		}
 
-		name := arg.substr(name_from, name_to)
+		name_raw := arg.substr(name_from, name_to)
+		name_ptrs := string_count(name_raw, `*`) // quick and dirty hack to fix `void **name` situations
+		name := if name_ptrs > 0 {
+			name_real_from := string_index_last(name_raw, '*')? + 1
+			name_real_to := name_raw.len
+			name_raw.substr(name_real_from, name_real_to)
+		} else {
+			name_raw
+		}
+		ptr += name_ptrs
+
 		kind_raw := arg.substr(kind_from, kind_to)
 		kind := parse_type(kind_raw, ptr: ptr, arr_len: len) ?
 
