@@ -36,8 +36,7 @@ pub fn (fns []Fn) gen(mod Module) string {
 }
 
 pub fn (enums []Enum) gen(mod Module) string {
-	raw := enums.map(it.gen()).join('\n')
-	return head('const (\n$raw\n)', mod)
+	return head(enums.map(it.gen()).join('\n'), mod)
 }
 
 pub fn (fns []Fn) gen_bindings() string {
@@ -58,7 +57,7 @@ pub struct WriteConfig {
 
 pub fn (data Data) write(conf WriteConfig) ? {
 	make_sure_dir_exists(conf.root) ?
-	os.write_file(os.join_path(conf.root, conf.fns_file), data.fns.gen(.gl)) ?
+	os.write_file(os.join_path(conf.root, conf.fns_file), data.fns.gen(.sys)) ?
 	os.write_file(os.join_path(conf.root, conf.enums_file), data.enums.gen(.sys)) ?
 	os.write_file(os.join_path(conf.root, conf.bindings_file), data.fns.gen_bindings()) ?
 }
@@ -78,7 +77,7 @@ fn (fun Fn) gen() string {
 fn (fun Fn) gen_binding() string {
 	if_returns := if fun.types.returns != Type('') { 'return ' } else { '' }
 
-	return 'fn ${translate_fun(fun.name)}(${fun.types.args.map(it.gen()).join(', ')}) $fun.types.returns.gen() {
+	return 'pub fn ${translate_fun(fun.name)}(${fun.types.args.map(it.gen()).join(', ')}) $fun.types.returns.gen() {
 	${if_returns}C.${fun.name}(${fun.types.args.map(unreserve_word(it.name)).join(', ')})
 }'
 }
@@ -136,5 +135,5 @@ struct Enum {
 
 fn (en Enum) gen() string {
 	name := unreserve_word(translate_enum(en.name))
-	return '\t$name = $en.val'
+	return 'pub const $name = $en.val'
 }
