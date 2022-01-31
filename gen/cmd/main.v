@@ -7,5 +7,6 @@ fn main() {
 		root: './sys'
 		fns_file: 'fns.v'
 		enums_file: 'enums.v'
+		bindings_file: 'bindings.v'
 	) ?
 }

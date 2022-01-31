@@ -88,6 +88,62 @@ fn translate_enum(name string) string {
 	return name.substr(remove, name.len).to_lower()
 }
 
+fn translate_fun(name string) string {
+	return to_snake_case(name.substr(2, name.len), true)
+}
+
+enum SnakeCaseParserPrev {
+	letter
+	capital
+	number
+}
+
+fn (mut prev SnakeCaseParserPrev) set(c byte) {
+	if c.is_digit() {
+		prev = .number
+		return
+	}
+	if c.is_capital() {
+		prev = .capital
+		return
+	}
+	prev = .letter
+}
+
+fn to_snake_case(camel_case string, ignore_starting_capital bool) string {
+	// requirements:
+	// createShader -> create_shader
+	// something3D -> something_3d
+	// somethingElseARB -> something_else_arb
+
+	// so
+	// 1. if capital, insert underscore and lowercase
+	// 2. if capital after number, only lowercase
+	// 3. if multiple capitals right after each other, first an underscore and lowercase, then only lowercase
+	mut res := []byte{cap: camel_case.len}
+
+	mut prev := if ignore_starting_capital {
+		SnakeCaseParserPrev.capital
+	} else {
+		SnakeCaseParserPrev.letter
+	}
+	for c in camel_case.bytes() {
+		match prev {
+			.letter {
+				if c.is_capital() {
+					res << `_`
+				}
+			}
+			.capital {}
+			.number {}
+		}
+		prev.set(c)
+		res << if c.is_capital() { c.ascii_str().to_lower().bytes()[0] } else { c }
+	}
+
+	return res.bytestr()
+}
+
 fn validify_enum(val string) string {
 	return match val {
 		'0xFFFFFFFFFFFFFFFFull' { '0xFFFFFFFFFFFFFFFF' }
