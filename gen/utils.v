@@ -88,6 +88,14 @@ fn translate_enum(name string) string {
 	return name.substr(remove, name.len).to_lower()
 }
 
+fn validify_enum(val string) string {
+	return match val {
+		'0xFFFFFFFFFFFFFFFFull' { '0xFFFFFFFFFFFFFFFF' }
+		'0xFFFFFFFFu' { '0xFFFFFFFF' }
+		else { val }
+	}
+}
+
 fn make_sure_dir_exists(path string) ? {
 	if !os.exists(path) {
 		os.mkdir(path) ?

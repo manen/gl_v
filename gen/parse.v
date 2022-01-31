@@ -60,13 +60,39 @@ fn parse_enums(lines []string) ?[]Enum {
 			continue
 		}
 		name_to := without_define.index(' ') ? + name_from // add name_from to accommodate for without_define something blah blah
+		name := raw.substr(name_from, name_to)
 
 		val_from := name_to + 1
 		val_to := raw.len
+		val_raw := raw.substr(val_from, val_to)
+		val := validify_enum(val_raw)
 
-		res << Enum{
-			name: raw.substr(name_from, name_to)
-			val: raw.substr(val_from, val_to)
+		res << Enum{name, val}
+	}
+
+	return fix_enums(res)
+}
+
+fn fix_enums(enums []Enum) []Enum {
+	mut res := []Enum{cap: enums.len}
+
+	for e in enums {
+		new_val := if e.val.starts_with('GL_') {
+			// enum points to another enum, set copy value to original value
+			a := enums.filter(it.name == e.val)
+			a[0].val
+		} else {
+			e.val
+		}
+
+		raw := Enum{
+			name: e.name
+			val: new_val
+		}
+		if raw !in res {
+			res << raw
+		} else {
+			assert raw.val == res.filter(it.name == raw.name)[0].val
 		}
 	}
 
@@ -214,7 +240,7 @@ fn parse_args(raw string) ?[]Var {
 		name_raw := arg.substr(name_from, name_to)
 		name_ptrs := string_count(name_raw, `*`) // quick and dirty hack to fix `void **name` situations
 		name := if name_ptrs > 0 {
-			name_real_from := string_index_last(name_raw, '*')? + 1
+			name_real_from := string_index_last(name_raw, '*') ? + 1
 			name_real_to := name_raw.len
 			name_raw.substr(name_real_from, name_real_to)
 		} else {
