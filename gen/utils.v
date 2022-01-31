@@ -18,10 +18,10 @@ fn translate_type(gl string) string {
 		'GLuint' { 'u32' }
 		'GLint' { 'int' }
 		'GLsizei' { 'int' }
-		'GLboolean' { 'u8' }
+		'GLboolean' { 'byte' }
 		'GLbyte' { 'i8' }
 		'GLshort' { 'i16' }
-		'GLubyte' { 'u8' }
+		'GLubyte' { 'byte' }
 		'GLushort' { 'u16' }
 		'GLulong' { 'u64' }
 		'GLfloat' { 'f32' }
@@ -162,7 +162,7 @@ fn string_index_last(str string, find string) ?int {
 	return str.len - (str.reverse().index(find.reverse()) ? + find.len)
 }
 
-fn string_count(str string, find u8) int {
+fn string_count(str string, find byte) int {
 	mut count := 0
 	for b in str.bytes() {
 		if b == find {

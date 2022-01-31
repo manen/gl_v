@@ -8,6 +8,8 @@ struct Header {
 	exports  map[string]string
 	defines  map[string]string
 	typedefs map[string]FnTypes
+
+	glapis map[string]FnTypes
 }
 
 pub fn new_header(path string) ?Header {
@@ -19,9 +21,11 @@ pub fn new_header(path string) ?Header {
 	exports := parse_exports(lines.filter(is_export)) ?
 	defines := parse_defines(lines.filter(is_define)) ?
 	typedefs := parse_typedefs(lines.filter(is_typedef)) ?
+
+	glapis := parse_glapis(lines.filter(is_glapi)) ?
 	// these could be parallelized!
 
-	return Header{enums, exports, defines, typedefs}
+	return Header{enums, exports, defines, typedefs, glapis}
 }
 
 pub fn (header Header) parse() Data {
@@ -34,11 +38,15 @@ pub fn (header Header) parse() Data {
 }
 
 fn (header Header) parse_fns() []Fn {
-	mut fns := []Fn{cap: header.exports.len}
+	mut fns := []Fn{cap: header.exports.len + header.glapis.len}
 
 	for name, export_name in header.defines {
 		types := header.typedefs[header.exports[export_name]]
 
+		fns << Fn{name, types}
+	}
+
+	for name, types in header.glapis {
 		fns << Fn{name, types}
 	}
 
@@ -165,10 +173,40 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 
 		args_from := closing_bracket_pos + 3
 		args_to := raw.len - 2 // remove semicolon and ending bracket
+		args_raw := raw.substr(args_from, args_to).trim(' ')
+		args := if args_raw != 'void' { parse_args(args_raw) ? } else { []Var{} }
+
+		res[name] = FnTypes{returns, args}
+		println('$args_raw: ${res[name]}')
+	}
+
+	return res
+}
+
+fn is_glapi(line string) bool {
+	return line.starts_with('GLAPI')
+}
+
+fn parse_glapis(lines []string) ?map[string]FnTypes {
+	mut res := map[string]FnTypes{}
+
+	for raw in lines {
+		returns_from := 6
+		returns_to := raw.index('GLAPIENTRY') ?
+		returns_raw := raw.substr(returns_from, returns_to).trim(' ')
+		returns := parse_type(returns_raw, Implied{}) ?
+
+		name_from := returns_to + 11
+		name_to := string_index_last(raw, ' (') ?
+		name := raw.substr(name_from, name_to)
+
+		args_from := name_to + 2
+		args_to := string_index_last(raw, ');') ?
 		args_raw := raw.substr(args_from, args_to)
 		args := if args_raw != 'void' { parse_args(args_raw) ? } else { []Var{} }
 
 		res[name] = FnTypes{returns, args}
+		println('$args_raw: ${res[name]}')
 	}
 
 	return res
