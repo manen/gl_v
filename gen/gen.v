@@ -42,7 +42,10 @@ pub fn (enums []Enum) gen(mod Module) string {
 
 pub fn (fns []Fn) gen_bindings() string {
 	raw := fns.map(it.gen_binding()).join('\n')
-	return head(raw, .sys)
+	return head('#pkgconfig glew
+#include <GL/glew.h>
+
+$raw', .sys)
 }
 
 pub struct WriteConfig {
