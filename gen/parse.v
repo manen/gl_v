@@ -177,7 +177,6 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 		args := if args_raw != 'void' { parse_args(args_raw) ? } else { []Var{} }
 
 		res[name] = FnTypes{returns, args}
-		println('$args_raw: ${res[name]}')
 	}
 
 	return res
@@ -206,7 +205,6 @@ fn parse_glapis(lines []string) ?map[string]FnTypes {
 		args := if args_raw != 'void' { parse_args(args_raw) ? } else { []Var{} }
 
 		res[name] = FnTypes{returns, args}
-		println('$args_raw: ${res[name]}')
 	}
 
 	return res
