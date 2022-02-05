@@ -77,7 +77,8 @@ fn (fun Fn) gen() string {
 fn (fun Fn) gen_binding() string {
 	if_returns := if fun.types.returns != Type('') { 'return ' } else { '' }
 
-	return 'pub fn ${translate_fun(fun.name)}(${fun.types.args.map(it.gen()).join(', ')}) $fun.types.returns.gen() {
+	return '[inline]
+pub fn ${translate_fun(fun.name)}(${fun.types.args.map(it.gen()).join(', ')}) $fun.types.returns.gen() {
 	${if_returns}C.${fun.name}(${fun.types.args.map(unreserve_word(it.name)).join(', ')})
 }'
 }
