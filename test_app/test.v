@@ -61,10 +61,6 @@ fn C.glfwMakeContextCurrent(window voidptr)
 fn C.glfwInit() int
 fn C.glfwTerminate()
 
-// TODO integrate all of this into the wrapper
-fn C.glewInit() u32
-fn C.glewGetErrorString(err u32) &char
-
 const (
 	width  = 854
 	height = 480
@@ -151,7 +147,7 @@ fn create_window() ?voidptr {
 }
 
 fn init_glew() ? {
-	if C.glewInit() != 0 {
+	if gl.glew_init() != 0 {
 		return error('Failed to initialize GLEW')
 	}
 }

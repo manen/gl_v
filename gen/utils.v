@@ -50,6 +50,7 @@ fn translate_type(gl string) string {
 		'GLvdpauSurfaceNV' { 'i64' }
 		'GLfixed' { 'int' }
 		'GLclampx' { 'int' }
+		'char' { 'char' }
 		// else { error('Unknown GL type $gl') }
 		else { '/* $gl */ voidptr' }
 	}
@@ -84,12 +85,16 @@ fn is_invalid(name string) bool {
 }
 
 fn translate_enum(name string) string {
+	if name.starts_with('GLEW_') {
+		return 'glew_${translate_enum(name.replace('GLEW_', 'xx'))}'
+	}
 	remove := if name.starts_with('GL_') { 3 } else { 2 }
 	return name.substr(remove, name.len).to_lower()
 }
 
 fn translate_fun(name string) string {
-	return to_snake_case(name.substr(2, name.len), true)
+	return to_snake_case(name.substr(if !name.to_lower().starts_with('glew') { 2 } else { 0 },
+		name.len), true)
 }
 
 enum SnakeCaseParserPrev {

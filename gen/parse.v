@@ -54,7 +54,8 @@ fn (header Header) parse_fns() []Fn {
 }
 
 fn is_enum(line string) bool {
-	return line.starts_with('#define GL_')
+	return line.starts_with('#define GL_') || (line.starts_with('#define GLEW_')
+		&& !line.contains('('))
 }
 
 fn parse_enums(lines []string) ?[]Enum {
@@ -74,6 +75,11 @@ fn parse_enums(lines []string) ?[]Enum {
 		val_to := raw.len
 		val_raw := raw.substr(val_from, val_to)
 		val := validify_enum(val_raw)
+
+		if val == 'GLEWAPI' {
+			// invalid enum
+			continue
+		}
 
 		res << Enum{name, val}
 	}
@@ -183,19 +189,21 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 }
 
 fn is_glapi(line string) bool {
-	return line.starts_with('GLAPI')
+	return line.starts_with('GLAPI') || (line.starts_with('GLEWAPI') && line.contains('(')) // we want to make sure they aren't variables
 }
 
 fn parse_glapis(lines []string) ?map[string]FnTypes {
 	mut res := map[string]FnTypes{}
 
 	for raw in lines {
-		returns_from := 6
-		returns_to := raw.index('GLAPIENTRY') ?
+		glew := raw.contains('GLEWAPI')
+
+		returns_from := if !glew { 6 } else { 8 }
+		returns_to := raw.index(if !glew { 'GLAPIENTRY' } else { 'GLEWAPIENTRY' }) ?
 		returns_raw := raw.substr(returns_from, returns_to).trim(' ')
 		returns := parse_type(returns_raw, Implied{}) ?
 
-		name_from := returns_to + 11
+		name_from := returns_to + if !glew { 11 } else { 13 }
 		name_to := string_index_last(raw, ' (') ?
 		name := raw.substr(name_from, name_to)
 
