@@ -89,8 +89,8 @@ const (
 )
 
 fn main() {
-	win := create_window() ?
-	init_glew() ?
+	win := create_window()?
+	init_glew()?
 
 	gl.viewport(0, 0, width, height)
 
@@ -111,7 +111,7 @@ fn main() {
 	gl.vertex_attrib_pointer(0, 3, gl.float, gl.gl_false, 3 * 4, voidptr(0))
 	gl.enable_vertex_attrib_array(0)
 
-	prog := load_shaders('./test_app/vert.glsl', './test_app/frag.glsl') ?
+	prog := load_shaders('./test_app/vert.glsl', './test_app/frag.glsl')?
 
 	for C.glfwWindowShouldClose(win) == 0 {
 		gl.clear_color(0.2, 0.3, 0.3, 1.0)
@@ -153,21 +153,21 @@ fn init_glew() ? {
 }
 
 fn load_shaders(vert_path string, frag_path string) ?u32 {
-	vert_src := os.read_file(vert_path) ?
-	frag_src := os.read_file(frag_path) ?
+	vert_src := os.read_file(vert_path)?
+	frag_src := os.read_file(frag_path)?
 
 	vert := gl.create_shader(gl.vertex_shader)
 	frag := gl.create_shader(gl.fragment_shader)
 
-	compile_single_shader(vert_path, vert_src, vert) ?
-	compile_single_shader(frag_path, frag_src, frag) ?
+	compile_single_shader(vert_path, vert_src, vert)?
+	compile_single_shader(frag_path, frag_src, frag)?
 
 	prog := gl.create_program()
 	gl.attach_shader(prog, vert)
 	gl.attach_shader(prog, frag)
 	gl.link_program(prog)
 
-	single_shader_log('', prog, true) ?
+	single_shader_log('', prog, true)?
 
 	gl.delete_shader(vert)
 	gl.delete_shader(frag)
@@ -179,7 +179,7 @@ fn compile_single_shader(path string, src string, shader u32) ? {
 	gl.shader_source(shader, 1, &src.str, voidptr(0))
 	gl.compile_shader(shader)
 
-	single_shader_log(path, shader, false) ?
+	single_shader_log(path, shader, false)?
 }
 
 fn single_shader_log(path string, shader u32, prog bool) ? {
@@ -198,7 +198,7 @@ fn single_shader_log(path string, shader u32, prog bool) ? {
 			gl.get_programiv(shader, gl.info_log_length, &mut log_l)
 		}
 
-		mut b := []byte{len: log_l}
+		mut b := []u8{len: log_l}
 		if !prog {
 			gl.get_shader_info_log(shader, log_l, voidptr(0), b.data)
 		} else {

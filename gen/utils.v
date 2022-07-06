@@ -18,10 +18,10 @@ fn translate_type(gl string) string {
 		'GLuint' { 'u32' }
 		'GLint' { 'int' }
 		'GLsizei' { 'int' }
-		'GLboolean' { 'byte' }
+		'GLboolean' { 'u8' }
 		'GLbyte' { 'i8' }
 		'GLshort' { 'i16' }
-		'GLubyte' { 'byte' }
+		'GLubyte' { 'u8' }
 		'GLushort' { 'u16' }
 		'GLulong' { 'u64' }
 		'GLfloat' { 'f32' }
@@ -70,6 +70,9 @@ fn unreserve_word(raw string) string {
 // invalid in V.
 // inevitably O(n^2), probably a performance pain point.
 fn is_invalid(name string) bool {
+	if name[0..1].is_upper() {
+		return true
+	}
 	for reserved in gen.reserved_numbers {
 		if name.starts_with(reserved) {
 			return true
@@ -103,7 +106,7 @@ enum SnakeCaseParserPrev {
 	number
 }
 
-fn (mut prev SnakeCaseParserPrev) set(c byte) {
+fn (mut prev SnakeCaseParserPrev) set(c u8) {
 	if c.is_digit() {
 		prev = .number
 		return
@@ -125,7 +128,7 @@ fn to_snake_case(camel_case string, ignore_starting_capital bool) string {
 	// 1. if capital, insert underscore and lowercase
 	// 2. if capital after number, only lowercase
 	// 3. if multiple capitals right after each other, first an underscore and lowercase, then only lowercase
-	mut res := []byte{cap: camel_case.len}
+	mut res := []u8{cap: camel_case.len}
 
 	mut prev := if ignore_starting_capital {
 		SnakeCaseParserPrev.capital
@@ -159,15 +162,15 @@ fn validify_enum(val string) string {
 
 fn make_sure_dir_exists(path string) ? {
 	if !os.exists(path) {
-		os.mkdir(path) ?
+		os.mkdir(path)?
 	}
 }
 
 fn string_index_last(str string, find string) ?int {
-	return str.len - (str.reverse().index(find.reverse()) ? + find.len)
+	return str.len - (str.reverse().index(find.reverse())? + find.len)
 }
 
-fn string_count(str string, find byte) int {
+fn string_count(str string, find u8) int {
 	mut count := 0
 	for b in str.bytes() {
 		if b == find {
