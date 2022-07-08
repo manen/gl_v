@@ -13,16 +13,16 @@ struct Header {
 }
 
 pub fn new_header(path string) ?Header {
-	raw := os.read_file(path) ?
-	lines := raw.split('\n')
+	raw := os.read_file(path)?
+	lines := raw.replace('\r', '').split('\n')
 
-	enums := parse_enums(lines.filter(is_enum)) ?
+	enums := parse_enums(lines.filter(is_enum))?
 
-	exports := parse_exports(lines.filter(is_export)) ?
-	defines := parse_defines(lines.filter(is_define)) ?
-	typedefs := parse_typedefs(lines.filter(is_typedef)) ?
+	exports := parse_exports(lines.filter(is_export))?
+	defines := parse_defines(lines.filter(is_define))?
+	typedefs := parse_typedefs(lines.filter(is_typedef))?
 
-	glapis := parse_glapis(lines.filter(is_glapi)) ?
+	glapis := parse_glapis(lines.filter(is_glapi))?
 	// these could be parallelized!
 
 	return Header{enums, exports, defines, typedefs, glapis}
@@ -68,7 +68,7 @@ fn parse_enums(lines []string) ?[]Enum {
 			// header definition probably. do something if i fucked something up
 			continue
 		}
-		name_to := without_define.index(' ') ? + name_from // add name_from to accommodate for without_define something blah blah
+		name_to := without_define.index(' ')? + name_from // add name_from to accommodate for without_define something blah blah
 		name := raw.substr(name_from, name_to)
 
 		val_from := name_to + 1
@@ -125,7 +125,7 @@ fn parse_exports(lines []string) ?map[string]string {
 		// i don't know why either
 
 		val_from := 16
-		val_to := raw.index('__') ? - 1 // we're assuming __ is the start of __glewSomeGlFunction + accommodate for space
+		val_to := raw.index('__')? - 1 // we're assuming __ is the start of __glewSomeGlFunction + accommodate for space
 
 		key_from := val_to + 1 // add back space
 		key_to := raw.len - 1 // accommodate for the semicolon
@@ -145,9 +145,9 @@ fn parse_defines(lines []string) ?map[string]string {
 
 	for raw in lines {
 		key_from := 8
-		key_to := raw.index('GLEW_GET_FUN') ? - 1
+		key_to := raw.index('GLEW_GET_FUN')? - 1
 
-		val_from := raw.index('__') ? // we're assuming __ is the start of __glewSomeFunction
+		val_from := raw.index('__')? // we're assuming __ is the start of __glewSomeFunction
 		val_to := raw.len - 1 // accommodate for the ending bracket
 
 		res[raw.substr(key_from, key_to)] = raw.substr(val_from, val_to)
@@ -168,19 +168,19 @@ fn parse_typedefs(lines []string) ?map[string]FnTypes {
 		// syntax: typedef <return> (GLAPIENTRY * PFN<fn ptr name>PROC) <args>
 
 		returns_from := 8
-		returns_to := raw.index('(GL') ? // we're assuming (GL is the start of (GLAPIENTRY
+		returns_to := raw.index('(GL')? // we're assuming (GL is the start of (GLAPIENTRY
 		returns_raw := raw.substr(returns_from, returns_to).trim(' ')
-		returns := parse_type(returns_raw, Implied{}) ?
-		closing_bracket_pos := raw.substr(returns_to, raw.len).index(')') ? + returns_to
+		returns := parse_type(returns_raw, Implied{})?
+		closing_bracket_pos := raw.substr(returns_to, raw.len).index(')')? + returns_to
 
-		name_from := raw.index('APIENTRY *') ? + 11
+		name_from := raw.index('APIENTRY *')? + 11
 		name_to := closing_bracket_pos // we only check a subset of raw so the return type doesn't fuck up
 		name := raw.substr(name_from, name_to)
 
 		args_from := closing_bracket_pos + 3
 		args_to := raw.len - 2 // remove semicolon and ending bracket
 		args_raw := raw.substr(args_from, args_to).trim(' ')
-		args := if args_raw != 'void' { parse_args(args_raw) ? } else { []Var{} }
+		args := if args_raw != 'void' { parse_args(args_raw)? } else { []Var{} }
 
 		res[name] = FnTypes{returns, args}
 	}
@@ -199,18 +199,18 @@ fn parse_glapis(lines []string) ?map[string]FnTypes {
 		glew := raw.contains('GLEWAPI')
 
 		returns_from := if !glew { 6 } else { 8 }
-		returns_to := raw.index(if !glew { 'GLAPIENTRY' } else { 'GLEWAPIENTRY' }) ?
+		returns_to := raw.index(if !glew { 'GLAPIENTRY' } else { 'GLEWAPIENTRY' })?
 		returns_raw := raw.substr(returns_from, returns_to).trim(' ')
-		returns := parse_type(returns_raw, Implied{}) ?
+		returns := parse_type(returns_raw, Implied{})?
 
 		name_from := returns_to + if !glew { 11 } else { 13 }
-		name_to := string_index_last(raw, ' (') ?
+		name_to := string_index_last(raw, ' (')?
 		name := raw.substr(name_from, name_to)
 
 		args_from := name_to + 2
-		args_to := string_index_last(raw, ');') ?
+		args_to := string_index_last(raw, ');')?
 		args_raw := raw.substr(args_from, args_to)
-		args := if args_raw != 'void' { parse_args(args_raw) ? } else { []Var{} }
+		args := if args_raw != 'void' { parse_args(args_raw)? } else { []Var{} }
 
 		res[name] = FnTypes{returns, args}
 	}
@@ -230,8 +230,8 @@ fn parse_args(raw string) ?[]Var {
 		mut separator := ''
 		mut ptr := if arg.contains('*') { 1 } else { 0 }
 		len := if arg.contains('[') {
-			len_from := arg.index('[') ? + 1
-			len_to := arg.index(']') ?
+			len_from := arg.index('[')? + 1
+			len_to := arg.index(']')?
 			len_raw := arg.substr(len_from, len_to)
 			if len_raw != '' {
 				len_raw.int()
@@ -245,7 +245,7 @@ fn parse_args(raw string) ?[]Var {
 
 		if arg.contains(' ') {
 			if arg.contains('*') {
-				if string_index_last(arg, ' ') ? < string_index_last(arg, '*') ? {
+				if string_index_last(arg, ' ')? < string_index_last(arg, '*')? {
 					// type *name
 					separator = ' *'
 				} else {
@@ -264,17 +264,17 @@ fn parse_args(raw string) ?[]Var {
 				// only type. :|
 				res << Var{
 					name: 'xyzabc /* no name. */'
-					kind: parse_type(arg, ptr: ptr) ?
+					kind: parse_type(arg, ptr: ptr)?
 				}
 				continue
 			}
 		}
 
 		kind_from := 0
-		kind_to := string_index_last(arg, separator) ?
+		kind_to := string_index_last(arg, separator)?
 		name_from := kind_to + separator.len
 		name_to := if arg.contains('[') {
-			a := arg.index('[') ?
+			a := arg.index('[')?
 			a
 			// the v compiler is funny sometimes
 		} else {
@@ -284,7 +284,7 @@ fn parse_args(raw string) ?[]Var {
 		name_raw := arg.substr(name_from, name_to)
 		name_ptrs := string_count(name_raw, `*`) // quick and dirty hack to fix `void **name` situations
 		name := if name_ptrs > 0 {
-			name_real_from := string_index_last(name_raw, '*') ? + 1
+			name_real_from := string_index_last(name_raw, '*')? + 1
 			name_real_to := name_raw.len
 			name_raw.substr(name_real_from, name_real_to)
 		} else {
@@ -293,7 +293,7 @@ fn parse_args(raw string) ?[]Var {
 		ptr += name_ptrs
 
 		kind_raw := arg.substr(kind_from, kind_to)
-		kind := parse_type(kind_raw, ptr: ptr, arr_len: len) ?
+		kind := parse_type(kind_raw, ptr: ptr, arr_len: len)?
 
 		res << Var{name, kind}
 	}
@@ -328,18 +328,18 @@ fn parse_type(raw string, im Implied) ?Type {
 
 	if raw.contains('*') {
 		return PtrType{
-			child: parse_type(raw.substr(0, raw.len - 1), im) ?
+			child: parse_type(raw.substr(0, raw.len - 1), im)?
 		}
 	}
 	if im.ptr() {
 		return PtrType{
-			child: parse_type(raw, Implied{ ptr: im.ptr - 1, arr_len: im.arr_len }) ?
+			child: parse_type(raw, Implied{ ptr: im.ptr - 1, arr_len: im.arr_len })?
 		}
 	}
 	if im.arr() {
 		return ArrayType{
 			len: im.arr_len
-			child: parse_type(raw, Implied{ ptr: im.ptr }) ?
+			child: parse_type(raw, Implied{ ptr: im.ptr })?
 		}
 	}
 
